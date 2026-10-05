@@ -84,7 +84,7 @@ function status(msg) {
 function render() {
   const host = $('#cards');
   host.innerHTML = '';
-  deck.forEach(c => {
+  deck.forEach((c, index) => {
     const e = document.createElement('div');
     e.className = 'card';
     e.tabIndex = 0;
@@ -102,7 +102,7 @@ function render() {
     im.src = c.front || c.back || '';
     im.alt = c.name;
     const t = document.createElement('span');
-    t.textContent = c.slot + '. ' + c.name;
+    t.textContent = index + 1 + '. ' + c.name;
     e.append(im, t);
     host.append(e)
   });
