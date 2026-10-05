@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="fr">
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width,initial-scale=1" name="viewport"/>
+  <title>
+   impression de proxies ou création de pdf
+  </title>
+  <link href="style.css" rel="stylesheet"/>
+ </head>
+ <body>
+  <main class="wrap">
+   <div class="top">
+    <div class="brand">
+     PRINT PROXY
+    </div>
+    <div class="badge">
+     ÉDITION DE PROXIES · RECTO VERSO
+    </div>
+   </div>
+   <h1>
+    Les cartes de ton deck, prêtes à prendre forme.
+   </h1>
+   <p class="lead">
+    créer votre dec sur: <a href="https://moxfield.com">moxfield</a><br>
+    puis importer votre dec sur: <a href="https://mpcfill.com/editor">mpcfill</a><br>
+    puis utiliser votre fichier xml pour créer le PDF
+</p>
+   <div class="layout">
+    <section class="panel">
+     <h2>
+      01 — Ton fichier XML
+     </h2>
+     <div class="drop">
+      <strong>
+       Choisis l’export XML de ton projet
+      </strong>
+      <p class="hint">
+       Fichier .xml généré depuis MPCFill / MPC Autofill
+      </p>
+      <input accept=".xml,text/xml,application/xml" id="xmlFile" type="file"/>
+     </div>
+     <div class="status" id="status">
+      En attente d’un fichier XML.
+     </div>
+     <div class="preview">
+      <h2>
+       Aperçu des cartes
+      </h2>
+      <div class="cards" id="cards">
+      </div>
+     </div>
+    </section>
+    <aside class="panel">
+     <h2>
+      02 — Format du PDF
+     </h2>
+     <div class="row">
+      <label>
+       Feuille
+      </label>
+      <strong>
+       A4 · portrait
+      </strong>
+     </div>
+     <div class="row">
+      <label>
+       Cartes par feuille
+      </label>
+      <strong>
+       9 · grille 3 × 3
+      </strong>
+     </div>
+     <div class="row">
+      <label>
+       Format d’une carte
+      </label>
+      <strong>
+       63 × 88 mm · coins 3 mm
+      </strong>
+     </div>
+     <label class="check">
+      <input checked="" id="commonBacks" type="checkbox"/>
+      Imprimer les dos communs
+     </label>
+     <p class="hint">
+      Si tu décoches cette option, les dos particuliers des cartes recto verso restent imprimés.
+     </p>
+     <div class="actions">
+      <button class="btn" disabled="" id="print">
+       Télécharger le PDF
+      </button>
+      <button class="btn secondary" disabled="" id="printFallback">
+       Imprimer / enregistrer
+      </button>
+      <button class="btn secondary" id="demo">
+       Voir un exemple
+      </button>
+     </div>
+     <p class="hint">
+      Le PDF se télécharge directement. Les images sont récupérées en haute résolution au moment de la création. Le bouton secondaire ouvre l’impression comme solution de secours.
+     </p>
+    </aside>
+   </div>
+   <p class="footer">
+    Pour créer le PDF direct, les images publiques transitent par un service de conversion d’image afin de contourner la restriction CORS de Google Drive. Une connexion Internet est requise.
+   </p>
+  </main>
+  <div id="printRoot">
+  </div>
+  <div class="modalBackdrop" id="cardModal" hidden>
+   <section class="detailModal" role="dialog" aria-modal="true" aria-labelledby="detailName">
+    <button class="modalClose" id="closeDetail" type="button" aria-label="Fermer">×</button>
+    <h2 id="detailName">Carte</h2>
+    <div class="facePair">
+     <figure><figcaption>Recto</figcaption><div class="faceFrame"><img id="detailFront" alt="Recto de la carte"/><p id="emptyFront" hidden>Aucun recto disponible</p></div></figure>
+     <figure><figcaption>Verso</figcaption><div class="faceFrame"><img id="detailBack" alt="Verso de la carte"/><p id="emptyBack" hidden>Aucun verso disponible</p></div></figure>
+    </div>
+   </section>
+  </div>
+  <script defer="" src="app.js">
+  </script>
+ </body>
+</html>
+
