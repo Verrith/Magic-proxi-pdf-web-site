@@ -164,6 +164,20 @@ function moxfieldId(value) {
   }
 }
 
+function scryfallPrintImage(scryfallId, face = 'front') {
+  if (!/^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i.test(scryfallId || '')) return '';
+  const id = scryfallId.toLowerCase();
+  return `https://cards.scryfall.io/normal/${face}/${id[0]}/${id[1]}/${id}.jpg`
+}
+
+function moxfieldImage(card, entryId, face = 'front', faceIndex = 0) {
+  const id = faceIndex > 0
+    ? card.card_faces?.[faceIndex]?.uniqueCardId || card.card_faces?.[faceIndex]?.id || card.uniqueCardId || entryId
+    : card.uniqueCardId || entryId || card.id;
+  return scryfallPrintImage(card.scryfall_id || card.scryfallId, face) ||
+    (id ? `https://assets.moxfield.net/cards/card-${encodeURIComponent(id)}-normal.webp` : '')
+}
+
 $('#loadMoxfield').addEventListener('click', async () => {
   const id = moxfieldId($('#moxfieldUrl').value);
   if (!id) {
@@ -175,76 +189,50 @@ $('#loadMoxfield').addEventListener('click', async () => {
   try {
     status('Récupération du deck Moxfield…');
     const apiUrl = `https://api2.moxfield.com/v3/decks/all/${encodeURIComponent(id)}`;
+    const response = await fetch(`https://cors.tools/proxy?url=${encodeURIComponent(apiUrl)}`, {
+      headers: { Accept: 'application/json' },
+      signal: AbortSignal.timeout(25000)
+    });
     let data;
-    try {
-      const response = await fetch(apiUrl, { headers: { Accept: 'application/json' } });
-      if (!response.ok) throw Error(`HTTP ${response.status}`);
-      data = await response.json()
-    } catch {
-      status('Accès direct bloqué, lecture du deck…');
-      const response = await fetch(`https://r.jina.ai/${apiUrl}`);
-      if (!response.ok) throw Error(`Le relais de lecture a refusé l’import (HTTP ${response.status}).`);
-      const body = await response.text();
-      const jsonStart = body.indexOf('{', body.indexOf('Markdown Content:'));
-      if (jsonStart < 0) throw Error('Moxfield n’a pas retourné les données du deck. Vérifie que le lien est accessible.');
-      data = JSON.parse(body.slice(jsonStart))
+    try { data = await response.json() } catch { data = null }
+    if (!response.ok) {
+      const upstreamError = typeof data?.error === 'string' ? data.error : data?.error?.message;
+      throw Error(upstreamError || `Impossible de lire ce deck (HTTP ${response.status}). Vérifie qu’il est public.`)
     }
+    data = data?.deck || data;
     const boards = data.boards || {};
-    const entries = ['commanders', 'mainboard'].flatMap(board =>
-      Object.values(boards[board]?.cards || {}));
+    const entries = ['commanders', 'mainboard', 'companions', 'sideboard', 'maybeboard'].flatMap(board =>
+      Object.entries(boards[board]?.cards || {}).map(([entryId, entry]) => ({ entryId, ...entry })));
     if (!entries.length) throw Error('Aucune carte trouvée dans le deck Moxfield.');
-
-    const uniqueCards = new Map();
-    for (const entry of entries) {
-      const card = entry.card || {};
-      const printingId = card.scryfall_id || card.scryfallId || `${card.set || ''}:${card.cn || card.collectorNumber || ''}`;
-      if (printingId && !uniqueCards.has(printingId)) uniqueCards.set(printingId, card)
-    }
-    const images = new Map();
-    const cardList = [...uniqueCards.values()];
-    for (let start = 0; start < cardList.length; start += 75) {
-      status(`Récupération des impressions… ${Math.min(start + 75, cardList.length)}/${cardList.length}`);
-      const identifiers = cardList.slice(start, start + 75).map(card =>
-        card.scryfall_id || card.scryfallId
-          ? { id: card.scryfall_id || card.scryfallId }
-          : { set: card.set || card.setCode, collector_number: card.cn || card.collectorNumber });
-      const response = await fetch('https://api.scryfall.com/cards/collection', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({ identifiers })
-      });
-      if (!response.ok) throw Error('Impossible de récupérer les images des impressions choisies sur Scryfall.');
-      const result = await response.json();
-      for (const print of result.data || []) {
-        const image = print.image_uris?.normal || print.image_uris?.large || print.card_faces?.[0]?.image_uris?.normal || '';
-        if (image) {
-          images.set(print.id, image);
-          images.set(`${print.set}:${print.collector_number}`, image)
-        }
-      }
-    }
-
     const imported = [];
     for (const entry of entries) {
       const card = entry.card || {};
-      const count = Math.max(1, Number(entry.quantity) || 1);
-      const image = images.get(card.scryfall_id || card.scryfallId) || images.get(`${card.set || card.setCode}:${card.cn || card.collectorNumber}`) || '';
-      if (!image) throw Error(`Image introuvable pour « ${card.name || 'une carte'} » (impression ${card.set || ''} ${card.cn || card.collectorNumber || ''}).`);
+      const name = card.name || entry.name || 'Carte';
+      const count = Math.max(1, Number(entry.quantity || entry.qty) || 1);
+      const image = moxfieldImage(card, entry.entryId);
+      if (!image) throw Error(`Image introuvable pour « ${name} ».`);
+      const layout = String(card.layout || '').toLowerCase();
+      const hasBack = ['transform', 'modal_dfc', 'reversible_card', 'double_faced_token', 'flip'].includes(layout) && card.card_faces?.length > 1;
+      const back = hasBack ? moxfieldImage(card, entry.entryId, 'back', 1) : '';
       for (let i = 0; i < count; i++) imported.push({
         slot: imported.length,
-        name: card.name || 'Carte',
+        name,
         front: image,
         frontId: '',
-        back: '',
+        back,
         backId: '',
-        backKind: 'missing'
+        backKind: back ? 'unique' : 'missing'
       });
     }
     deck = imported;
     render();
     status(`${deck.length} carte(s) importée(s) depuis Moxfield avec les impressions choisies.`)
   } catch (err) {
-    status(err.message || 'Import Moxfield impossible.');
+    status(err?.name === 'TimeoutError'
+      ? 'Le service d’import met trop de temps à répondre. Réessaie dans un instant.'
+      : err instanceof TypeError
+        ? 'Le service de lecture du deck est momentanément inaccessible. Réessaie plus tard.'
+        : err.message || 'Import Moxfield impossible.');
   } finally {
     button.disabled = false
   }
