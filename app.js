@@ -373,7 +373,7 @@ async function printSheets() {
         }
         sheet.append(box)
       }
-      root.append(sheet)
+      if (sheet.querySelector('img')) root.append(sheet)
     }
   }
   status('Préparation des feuilles A4…');
@@ -561,7 +561,7 @@ $('#print').onclick = async () => {
             image: images.get(key)
           })
         }
-        pages.push(entries)
+        if (entries.length) pages.push(entries)
       }
     const blob = new Blob([pdfBytes(pages)], {
         type: 'application/pdf'
