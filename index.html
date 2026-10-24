@@ -22,7 +22,7 @@
     Les cartes de ton deck, prêtes à prendre forme.
    </h1>
    <p class="lead">
-    Colle le lien public de ton deck Moxfield ci-dessous, ou importe un XML MPCFill.
+    Colle le lien public de ton deck Moxfield ou Archidekt ci-dessous, ou importe un XML MPCFill.
 </p>
    <div class="layout">
     <section class="panel">
@@ -33,6 +33,14 @@
       <div class="row">
        <input id="moxfieldUrl" type="url" placeholder="https://moxfield.com/decks/…" aria-label="Lien du deck Moxfield">
        <button class="btn secondary" id="loadMoxfield" type="button">Importer</button>
+      </div>
+     </div>
+     <div class="drop">
+      <strong>Importer depuis Archidekt</strong>
+      <p class="hint">Les impressions choisies sur Archidekt seront utilisées.</p>
+      <div class="row">
+       <input id="archidektUrl" type="url" placeholder="https://archidekt.com/decks/123456" aria-label="Lien du deck Archidekt">
+       <button class="btn secondary" id="loadArchidekt" type="button">Importer</button>
       </div>
      </div>
      <div class="drop">

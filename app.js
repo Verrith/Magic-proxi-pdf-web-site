@@ -178,6 +178,117 @@ function moxfieldImage(card, entryId, face = 'front', faceIndex = 0) {
     (id ? `https://assets.moxfield.net/cards/card-${encodeURIComponent(id)}-normal.webp` : '')
 }
 
+function archidektId(value) {
+  try {
+    const url = new URL(value.trim());
+    if (!['archidekt.com', 'www.archidekt.com'].includes(url.hostname.toLowerCase())) return '';
+    return url.pathname.match(/^\/decks\/(\d+)(?:\/|$)/)?.[1] || ''
+  } catch {
+    return ''
+  }
+}
+
+function archidektCard(entry, section) {
+  const print = entry.card || {};
+  const oracle = print.oracleCard || {};
+  const name = oracle.name || print.displayName || 'Carte';
+  const image = scryfallPrintImage(print.uid);
+  if (!image) throw Error(`Image introuvable pour « ${name} » sur Archidekt.`);
+  const layout = String(oracle.layout || '').toLowerCase();
+  const hasBack = ['transform', 'modal_dfc', 'reversible_card', 'double_faced_token', 'flip'].includes(layout) && oracle.faces?.length > 1;
+  const back = hasBack ? scryfallPrintImage(print.uid, 'back') : '';
+  return {
+    name,
+    image,
+    back,
+    backKind: back ? 'unique' : 'missing',
+    quantity: Math.max(1, Number(entry.quantity) || 1),
+    section,
+    type: [...(oracle.types || []), ...(oracle.subTypes || [])].join(' ')
+  }
+}
+
+$('#loadArchidekt').addEventListener('click', async () => {
+  const id = archidektId($('#archidektUrl').value);
+  if (!id) {
+    status('Colle un lien valide vers un deck Archidekt.');
+    return
+  }
+  const button = $('#loadArchidekt');
+  button.disabled = true;
+  try {
+    status('Récupération du deck Archidekt…');
+    const requestJson = async endpoint => {
+      const target = `https://archidekt.com/api/decks/${encodeURIComponent(id)}/${endpoint}`;
+      const response = await fetch(`https://cors.tools/proxy?url=${encodeURIComponent(target)}`, {
+        headers: { Accept: 'application/json' },
+        signal: AbortSignal.timeout(25000)
+      });
+      let payload;
+      try { payload = await response.json() } catch { payload = null }
+      if (!response.ok) {
+        const detail = typeof payload?.detail === 'string' ? payload.detail : '';
+        throw Error(detail || `Archidekt a répondu HTTP ${response.status}.`)
+      }
+      return payload
+    };
+    const data = await requestJson('');
+    const tokenResult = await requestJson('tokens/').catch(() => []);
+    const cards = [];
+    const categories = new Map((data.categories || []).map(category => [String(category.name).toLowerCase(), category]));
+    for (const entry of data.cards || []) {
+      const names = (entry.categories || []).map(name => String(name).toLowerCase());
+      if (names.some(name => categories.has(name) && categories.get(name).includedInDeck === false)) continue;
+      const section = names.includes('commander') ? 'Commander'
+        : names.includes('companion') || entry.companion ? 'Companion'
+          : names.includes('sideboard') ? 'Sideboard' : 'Mainboard';
+      const imported = archidektCard(entry, section);
+      for (let i = 0; i < imported.quantity; i++) cards.push({
+        slot: cards.length,
+        name: imported.name,
+        front: imported.image,
+        frontId: '',
+        back: imported.back,
+        backId: '',
+        backKind: imported.backKind
+      })
+    }
+    const tokenPrints = Array.isArray(tokenResult) ? tokenResult : [];
+    const seenTokens = new Set();
+    for (const print of tokenPrints) {
+      const oracle = print.oracleCard || {};
+      const types = (oracle.types || []).map(type => String(type).toLowerCase());
+      const layout = String(oracle.layout || '').toLowerCase();
+      if (!oracle.name || (!types.includes('token') && !['token', 'double_faced_token'].includes(layout))) continue;
+      const tokenKey = String(oracle.id || print.uid || print.id);
+      if (seenTokens.has(tokenKey)) continue;
+      seenTokens.add(tokenKey);
+      const imported = archidektCard({ card: print, quantity: 1 }, 'Tokens');
+      cards.push({
+        slot: cards.length,
+        name: imported.name,
+        front: imported.image,
+        frontId: '',
+        back: imported.back,
+        backId: '',
+        backKind: imported.backKind
+      })
+    }
+    if (!cards.length) throw Error('Aucune carte trouvée. Vérifie que le deck Archidekt est public et contient une liste.');
+    deck = cards;
+    render();
+    status(`${deck.length} carte(s) importée(s) depuis Archidekt avec les impressions choisies.`)
+  } catch (err) {
+    status(err?.name === 'TimeoutError'
+      ? 'Le service Archidekt met trop de temps à répondre. Réessaie dans un instant.'
+      : err instanceof TypeError
+        ? 'Le service de lecture Archidekt est momentanément inaccessible. Réessaie plus tard.'
+        : err.message || 'Import Archidekt impossible.');
+  } finally {
+    button.disabled = false
+  }
+});
+
 $('#loadMoxfield').addEventListener('click', async () => {
   const id = moxfieldId($('#moxfieldUrl').value);
   if (!id) {
