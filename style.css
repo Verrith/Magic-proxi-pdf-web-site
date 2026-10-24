@@ -441,6 +441,17 @@ input[type=file] {
   font-size: 13px
 }
 
+#moxfieldUrl {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  background: white;
+  color: var(--ink);
+  font: inherit
+}
+
 input[type=file]::file-selector-button {
   border: 0;
   border-radius: 9px;

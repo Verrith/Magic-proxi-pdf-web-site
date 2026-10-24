@@ -22,19 +22,21 @@
     Les cartes de ton deck, prêtes à prendre forme.
    </h1>
    <p class="lead">
-    créer votre dec sur: <a href="https://moxfield.com">moxfield</a><br>
-    puis importer votre dec sur: <a href="https://mpcfill.com/editor">mpcfill</a><br>
-    puis utiliser votre fichier xml pour créer le PDF
+    Colle le lien public de ton deck Moxfield ci-dessous, ou importe un XML MPCFill.
 </p>
    <div class="layout">
     <section class="panel">
-     <h2>
-      01 — Ton fichier XML
-     </h2>
+     <h2>01 — Importer ton deck</h2>
      <div class="drop">
-      <strong>
-       Choisis l’export XML de ton projet
-      </strong>
+      <strong>Importer depuis Moxfield</strong>
+      <p class="hint">Les impressions sélectionnées dans le deck seront utilisées. Si Moxfield bloque l’accès direct, l’import passera par r.jina.ai pour lire le deck.</p>
+      <div class="row">
+       <input id="moxfieldUrl" type="url" placeholder="https://moxfield.com/decks/…" aria-label="Lien du deck Moxfield">
+       <button class="btn secondary" id="loadMoxfield" type="button">Importer</button>
+      </div>
+     </div>
+     <div class="drop">
+      <strong>Importer un XML MPCFill</strong>
       <p class="hint">
        Fichier .xml généré depuis MPCFill / MPC Autofill
       </p>

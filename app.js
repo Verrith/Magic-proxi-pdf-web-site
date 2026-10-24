@@ -154,6 +154,102 @@ $('#xmlFile').addEventListener('change', async e => {
   }
 });
 
+function moxfieldId(value) {
+  try {
+    const url = new URL(value.trim());
+    if (!['moxfield.com', 'www.moxfield.com'].includes(url.hostname)) return '';
+    return url.pathname.match(/^\/decks\/([\w-]+)/i)?.[1] || ''
+  } catch {
+    return ''
+  }
+}
+
+$('#loadMoxfield').addEventListener('click', async () => {
+  const id = moxfieldId($('#moxfieldUrl').value);
+  if (!id) {
+    status('Colle un lien valide vers un deck Moxfield.');
+    return
+  }
+  const button = $('#loadMoxfield');
+  button.disabled = true;
+  try {
+    status('Récupération du deck Moxfield…');
+    const apiUrl = `https://api2.moxfield.com/v3/decks/all/${encodeURIComponent(id)}`;
+    let data;
+    try {
+      const response = await fetch(apiUrl, { headers: { Accept: 'application/json' } });
+      if (!response.ok) throw Error(`HTTP ${response.status}`);
+      data = await response.json()
+    } catch {
+      status('Accès direct bloqué, lecture du deck…');
+      const response = await fetch(`https://r.jina.ai/${apiUrl}`);
+      if (!response.ok) throw Error(`Le relais de lecture a refusé l’import (HTTP ${response.status}).`);
+      const body = await response.text();
+      const jsonStart = body.indexOf('{', body.indexOf('Markdown Content:'));
+      if (jsonStart < 0) throw Error('Moxfield n’a pas retourné les données du deck. Vérifie que le lien est accessible.');
+      data = JSON.parse(body.slice(jsonStart))
+    }
+    const boards = data.boards || {};
+    const entries = ['commanders', 'mainboard'].flatMap(board =>
+      Object.values(boards[board]?.cards || {}));
+    if (!entries.length) throw Error('Aucune carte trouvée dans le deck Moxfield.');
+
+    const uniqueCards = new Map();
+    for (const entry of entries) {
+      const card = entry.card || {};
+      const printingId = card.scryfall_id || card.scryfallId || `${card.set || ''}:${card.cn || card.collectorNumber || ''}`;
+      if (printingId && !uniqueCards.has(printingId)) uniqueCards.set(printingId, card)
+    }
+    const images = new Map();
+    const cardList = [...uniqueCards.values()];
+    for (let start = 0; start < cardList.length; start += 75) {
+      status(`Récupération des impressions… ${Math.min(start + 75, cardList.length)}/${cardList.length}`);
+      const identifiers = cardList.slice(start, start + 75).map(card =>
+        card.scryfall_id || card.scryfallId
+          ? { id: card.scryfall_id || card.scryfallId }
+          : { set: card.set || card.setCode, collector_number: card.cn || card.collectorNumber });
+      const response = await fetch('https://api.scryfall.com/cards/collection', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ identifiers })
+      });
+      if (!response.ok) throw Error('Impossible de récupérer les images des impressions choisies sur Scryfall.');
+      const result = await response.json();
+      for (const print of result.data || []) {
+        const image = print.image_uris?.normal || print.image_uris?.large || print.card_faces?.[0]?.image_uris?.normal || '';
+        if (image) {
+          images.set(print.id, image);
+          images.set(`${print.set}:${print.collector_number}`, image)
+        }
+      }
+    }
+
+    const imported = [];
+    for (const entry of entries) {
+      const card = entry.card || {};
+      const count = Math.max(1, Number(entry.quantity) || 1);
+      const image = images.get(card.scryfall_id || card.scryfallId) || images.get(`${card.set || card.setCode}:${card.cn || card.collectorNumber}`) || '';
+      if (!image) throw Error(`Image introuvable pour « ${card.name || 'une carte'} » (impression ${card.set || ''} ${card.cn || card.collectorNumber || ''}).`);
+      for (let i = 0; i < count; i++) imported.push({
+        slot: imported.length,
+        name: card.name || 'Carte',
+        front: image,
+        frontId: '',
+        back: '',
+        backId: '',
+        backKind: 'missing'
+      });
+    }
+    deck = imported;
+    render();
+    status(`${deck.length} carte(s) importée(s) depuis Moxfield avec les impressions choisies.`)
+  } catch (err) {
+    status(err.message || 'Import Moxfield impossible.');
+  } finally {
+    button.disabled = false
+  }
+});
+
 async function printSheets() {
   if (!deck.length) return;
   const root = $('#printRoot');
