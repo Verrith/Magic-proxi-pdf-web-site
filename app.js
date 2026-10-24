@@ -195,7 +195,7 @@ function archidektCard(entry, section) {
   const image = scryfallPrintImage(print.uid);
   if (!image) throw Error(`Image introuvable pour « ${name} » sur Archidekt.`);
   const layout = String(oracle.layout || '').toLowerCase();
-  const hasBack = ['transform', 'modal_dfc', 'reversible_card', 'double_faced_token', 'flip'].includes(layout) && oracle.faces?.length > 1;
+  const hasBack = ['transform', 'modal_dfc', 'reversible_card', 'double_faced_token', 'flip'].includes(layout);
   const back = hasBack ? scryfallPrintImage(print.uid, 'back') : '';
   return {
     name,
@@ -323,7 +323,7 @@ $('#loadMoxfield').addEventListener('click', async () => {
       const image = moxfieldImage(card, entry.entryId);
       if (!image) throw Error(`Image introuvable pour « ${name} ».`);
       const layout = String(card.layout || '').toLowerCase();
-      const hasBack = ['transform', 'modal_dfc', 'reversible_card', 'double_faced_token', 'flip'].includes(layout) && card.card_faces?.length > 1;
+      const hasBack = ['transform', 'modal_dfc', 'reversible_card', 'double_faced_token', 'flip'].includes(layout);
       const back = hasBack ? moxfieldImage(card, entry.entryId, 'back', 1) : '';
       for (let i = 0; i < count; i++) imported.push({
         slot: imported.length,
