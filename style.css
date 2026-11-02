@@ -895,6 +895,8 @@ h1:after {
     display: grid;
     grid-template-columns: repeat(3, 63mm);
     grid-template-rows: repeat(3, 88mm);
+    column-gap: 2mm;
+    row-gap: 2mm;
     justify-content: center;
     align-content: center
   }

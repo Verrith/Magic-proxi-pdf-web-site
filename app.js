@@ -537,8 +537,9 @@ $('#print').onclick = async () => {
       ch = 88 / 25.4 * 72,
       pw = 210 / 25.4 * 72,
       ph = 297 / 25.4 * 72,
-      mx = (pw - 3 * cw) / 2,
-      my = (ph - 3 * ch) / 2;
+      gap = 2 / 25.4 * 72,
+      mx = (pw - (3 * cw + 2 * gap)) / 2,
+      my = (ph - (3 * ch + 2 * gap)) / 2;
     for (let start = 0; start < deck.length; start += per)
       for (const side of ['front', 'back']) {
         status(
@@ -556,8 +557,8 @@ $('#print').onclick = async () => {
           if (!key) continue;
           entries.push({
             cell,
-            x: mx + col * cw,
-            y: ph - my - (row + 1) * ch,
+            x: mx + col * (cw + gap),
+            y: ph - my - ch - row * (ch + gap),
             image: images.get(key)
           })
         }
