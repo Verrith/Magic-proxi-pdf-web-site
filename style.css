@@ -301,6 +301,20 @@ h1 {
   transform: scale(1.08)
 }
 
+.detailActions {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px
+}
+
+.btn.danger {
+  background: #a83c32
+}
+
+.btn.danger:hover:not(:disabled) {
+  background: #8d2e27
+}
+
 .faceFrame p {
   display: grid;
   place-items: center;

@@ -1,6 +1,7 @@
 const $ = s => document.querySelector(s);
 let deck = [],
-  localImages = [];
+  localImages = [],
+  selectedCard = null;
 
 const exampleXml = `<order>
   <details><quantity>5</quantity><bracket>18</bracket><stock>(S30) Standard Smooth</stock><foil>false</foil></details>
@@ -111,6 +112,7 @@ function render() {
 }
 
 function showDetail(card) {
+  selectedCard = card;
   $('#detailName').textContent = card.name;
   for (const [side, key] of [
       ['front', 'Front'],
@@ -128,10 +130,21 @@ function showDetail(card) {
 }
 
 function closeDetail() {
-  $('#cardModal').hidden = true
+  $('#cardModal').hidden = true;
+  selectedCard = null
 }
 
 $('#closeDetail').addEventListener('click', closeDetail);
+$('#deleteCard').addEventListener('click', () => {
+  if (!selectedCard) return;
+  const index = deck.indexOf(selectedCard);
+  if (index < 0) return closeDetail();
+  const name = selectedCard.name;
+  deck.splice(index, 1);
+  closeDetail();
+  render();
+  status(`« ${name} » supprimée du deck. Elle ne sera pas dans le PDF.`)
+});
 $('#cardModal').addEventListener('click', event => {
   if (event.target === $('#cardModal')) closeDetail()
 });
