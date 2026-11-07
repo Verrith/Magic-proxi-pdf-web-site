@@ -410,47 +410,34 @@ async function printSheets() {
   const root = $('#printRoot');
   root.innerHTML = '';
   const commonBacks = $('#commonBacks').checked;
-  const appendSheet = (cards, side, sourceStart, alignedBacks = false) => {
-    const sheet = document.createElement('div');
-    sheet.className = 'printSheet';
-    let hasImage = false;
+  const uniqueBacks = commonBacks ? [] : deck.filter(card => card.backKind === 'unique' && card.back);
+  let placedBacks = 0;
+  const appendSheet = (cards, side, sourceStart, alignedBacks = false, trailingBacks = []) => {
+    const sheet = document.createElement('div'); sheet.className = 'printSheet'; let hasImage = false;
+    const frontCount = Math.min(9, cards.length - sourceStart);
     for (let cell = 0; cell < 9; cell++) {
-      const row = Math.floor(cell / 3),
-        col = cell % 3,
-        sourceCol = alignedBacks ? 2 - col : col,
-        card = cards[sourceStart + row * 3 + sourceCol],
+      const row = Math.floor(cell / 3), col = cell % 3, sourceCol = alignedBacks ? 2 - col : col,
+        mainCard = cards[sourceStart + row * 3 + sourceCol], tailIndex = cell - frontCount,
+        isTrailingBack = !mainCard && tailIndex >= 0 && tailIndex < trailingBacks.length,
+        card = mainCard || (isTrailingBack ? trailingBacks[tailIndex] : null),
+        imageUrl = !card ? '' : (side === 'back' || isTrailingBack) ? effectiveBack(card) : card.front,
         box = document.createElement('div');
       box.className = 'printCard';
-      const imageUrl = !card ? '' : side === 'back' ? effectiveBack(card) : card.front;
-      if (imageUrl) {
-        const image = document.createElement('img');
-        image.src = imageUrl;
-        image.alt = card.name + ' ' + side;
-        box.append(image);
-        hasImage = true
-      }
-      sheet.append(box)
+      if (imageUrl) { const image = document.createElement('img'); image.src = imageUrl; image.alt = card.name + ((side === 'back' || isTrailingBack) ? ' verso' : ' recto'); box.append(image); hasImage = true; }
+      sheet.append(box);
     }
-    if (hasImage) root.append(sheet)
+    if (hasImage) root.append(sheet);
   };
-
   for (let start = 0; start < deck.length; start += 9) {
-    appendSheet(deck, 'front', start);
-    if (commonBacks) appendSheet(deck, 'back', start, true)
+    const frontCount = Math.min(9, deck.length - start), isLastFrontSheet = start + 9 >= deck.length,
+      trailingBacks = !commonBacks && isLastFrontSheet ? uniqueBacks.slice(0, 9 - frontCount) : [];
+    appendSheet(deck, 'front', start, false, trailingBacks); placedBacks += trailingBacks.length;
+    if (commonBacks) appendSheet(deck, 'back', start, true);
   }
-  if (!commonBacks) {
-    const uniqueBacks = deck.filter(card => card.backKind === 'unique' && card.back);
-    for (let start = 0; start < uniqueBacks.length; start += 9)
-      appendSheet(uniqueBacks, 'back', start)
-  }
-  status('Preparation des feuilles A4...');
-  await Promise.all([...root.querySelectorAll('img')].map(img => img.complete ? Promise
-    .resolve() : new Promise(resolve => {
-      img.onload = resolve;
-      img.onerror = resolve
-    })));
-  status('Dans la fenetre d’impression, choisis Enregistrer au format PDF.');
-  window.print()
+  if (!commonBacks) for (let start = placedBacks; start < uniqueBacks.length; start += 9) appendSheet(uniqueBacks, 'back', start);
+  status('Préparation des feuilles A4…');
+  await Promise.all([...root.querySelectorAll('img')].map(img => img.complete ? Promise.resolve() : new Promise(resolve => { img.onload = resolve; img.onerror = resolve; })));
+  status('Dans la fenêtre d’impression, choisis « Enregistrer au format PDF ».'); window.print();
 }
 $('#printFallback').onclick = printSheets;
 
@@ -636,16 +623,35 @@ $('#print').onclick = async () => {
     };
 
     if (commonBacks) {
-      for (let start = 0; start < deck.length; start += per) {
-        appendEntries(deck, start, 'front');
-        appendEntries(deck, start, 'back')
+      for (let start = 0; start < deck.length; start += per) for (const side of ['front', 'back']) {
+        const entries = [];
+        for (let cell = 0; cell < per; cell++) {
+          const row = Math.floor(cell / cols), col = cell % cols, sourceCol = side === 'back' ? cols - 1 - col : col, card = deck[start + row * cols + sourceCol];
+          if (!card) continue; const key = getUrl(side === 'back' ? effectiveBack(card) : card.front); if (!key) continue;
+          entries.push({ cell, x: mx + col * (cw + gap), y: ph - my - ch - row * (ch + gap), image: images.get(key) });
+        }
+        if (entries.length) pages.push(entries);
       }
     } else {
-      for (let start = 0; start < deck.length; start += per)
-        appendEntries(deck, start, 'front', true);
-      const uniqueBacks = deck.filter(card => card.backKind === 'unique' && card.back);
-      for (let start = 0; start < uniqueBacks.length; start += per)
-        appendEntries(uniqueBacks, start, 'back', true)
+      const uniqueBacks = deck.filter(card => card.backKind === 'unique' && card.back); let placedBacks = 0;
+      for (let start = 0; start < deck.length; start += per) {
+        const frontCount = Math.min(per, deck.length - start), trailingCount = start + per >= deck.length ? Math.min(per - frontCount, uniqueBacks.length) : 0, entries = [];
+        for (let cell = 0; cell < per; cell++) {
+          const row = Math.floor(cell / cols), col = cell % cols, frontCard = deck[start + cell], trailingIndex = cell - frontCount,
+            isTrailingBack = !frontCard && trailingIndex >= 0 && trailingIndex < trailingCount,
+            card = frontCard || (isTrailingBack ? uniqueBacks[placedBacks + trailingIndex] : null), key = getUrl(!card ? '' : isTrailingBack ? effectiveBack(card) : card.front);
+          if (!key) continue; entries.push({ cell, x: mx + col * (cw + gap), y: ph - my - ch - row * (ch + gap), image: images.get(key) });
+        }
+        if (entries.length) pages.push(entries); placedBacks += trailingCount;
+      }
+      for (let start = placedBacks; start < uniqueBacks.length; start += per) {
+        const entries = [];
+        for (let cell = 0; cell < per; cell++) {
+          const row = Math.floor(cell / cols), col = cell % cols, card = uniqueBacks[start + cell], key = card ? getUrl(effectiveBack(card)) : ''; if (!key) continue;
+          entries.push({ cell, x: mx + col * (cw + gap), y: ph - my - ch - row * (ch + gap), image: images.get(key) });
+        }
+        if (entries.length) pages.push(entries);
+      }
     }
     const blob = new Blob([pdfBytes(pages)], {
         type: 'application/pdf'
