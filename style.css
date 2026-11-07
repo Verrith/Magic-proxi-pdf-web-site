@@ -944,12 +944,16 @@ h1:after {
     pointer-events: none;
     background:
       linear-gradient(#888, #888) 0 calc(50% - 134mm) / 100% .15mm no-repeat,
-      linear-gradient(#888, #888) 0 calc(50% - 45mm) / 100% .15mm no-repeat,
-      linear-gradient(#888, #888) 0 calc(50% + 45mm) / 100% .15mm no-repeat,
+      linear-gradient(#888, #888) 0 calc(50% - 46mm) / 100% .15mm no-repeat,
+      linear-gradient(#888, #888) 0 calc(50% - 44mm) / 100% .15mm no-repeat,
+      linear-gradient(#888, #888) 0 calc(50% + 44mm) / 100% .15mm no-repeat,
+      linear-gradient(#888, #888) 0 calc(50% + 46mm) / 100% .15mm no-repeat,
       linear-gradient(#888, #888) 0 calc(50% + 134mm) / 100% .15mm no-repeat,
       linear-gradient(90deg, #888, #888) calc(50% - 96.5mm) 0 / .15mm 100% no-repeat,
-      linear-gradient(90deg, #888, #888) calc(50% - 32.5mm) 0 / .15mm 100% no-repeat,
-      linear-gradient(90deg, #888, #888) calc(50% + 32.5mm) 0 / .15mm 100% no-repeat,
+      linear-gradient(90deg, #888, #888) calc(50% - 33.5mm) 0 / .15mm 100% no-repeat,
+      linear-gradient(90deg, #888, #888) calc(50% - 31.5mm) 0 / .15mm 100% no-repeat,
+      linear-gradient(90deg, #888, #888) calc(50% + 31.5mm) 0 / .15mm 100% no-repeat,
+      linear-gradient(90deg, #888, #888) calc(50% + 33.5mm) 0 / .15mm 100% no-repeat,
       linear-gradient(90deg, #888, #888) calc(50% + 96.5mm) 0 / .15mm 100% no-repeat
   }
 

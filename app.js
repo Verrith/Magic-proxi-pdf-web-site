@@ -541,11 +541,11 @@ function pdfBytes(pages) {
         image: ent.image
       })
     }
-    // Straight cut guides run across the entire sheet, including sparse back sheets.
+    // Straight cut guides run across the sheet along both edges of every card.
     stream += '0.55 G 0.4 w\n';
-    for (const x of [mx, mx + cw + gap / 2, mx + 2 * cw + 1.5 * gap, mx + 3 * cw + 2 * gap])
+    for (const x of [mx, mx + cw, mx + cw + gap, mx + 2 * cw + gap, mx + 2 * cw + 2 * gap, mx + 3 * cw + 2 * gap])
       stream += `${x} 0 m ${x} ${ph} l S\n`;
-    for (const y of [my, my + ch + gap / 2, my + 2 * ch + 1.5 * gap, my + 3 * ch + 2 * gap])
+    for (const y of [my, my + ch, my + ch + gap, my + 2 * ch + gap, my + 2 * ch + 2 * gap, my + 3 * ch + 2 * gap])
       stream += `0 ${y} m ${pw} ${y} l S\n`;
     objs[pid] = [enc(
       `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pw} ${ph}] /Resources << /XObject <<${xobj} >> >> /Contents ${cid} 0 R >>`
