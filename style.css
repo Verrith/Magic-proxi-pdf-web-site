@@ -936,6 +936,11 @@ h1:after {
     align-content: center
   }
 
+  .printSheet:last-child {
+    page-break-after: auto;
+    break-after: auto
+  }
+
   .printSheet::before {
     content: "";
     position: absolute;
