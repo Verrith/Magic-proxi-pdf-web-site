@@ -541,14 +541,12 @@ function pdfBytes(pages) {
         image: ent.image
       })
     }
-    // Draw cut guides around all nine slots, including empty slots on sparse back sheets.
-    for (let cell = 0; cell < 9; cell++) {
-      const row = Math.floor(cell / 3),
-        col = cell % 3,
-        x = mx + col * (cw + gap),
-        y = ph - my - ch - row * (ch + gap);
-      stream += `0.55 G 0.4 w ${x} ${y} ${cw} ${ch} re S\n`
-    }
+    // Straight cut guides run across the entire sheet, including sparse back sheets.
+    stream += '0.55 G 0.4 w\n';
+    for (const x of [mx, mx + cw + gap / 2, mx + 2 * cw + 1.5 * gap, mx + 3 * cw + 2 * gap])
+      stream += `${x} 0 m ${x} ${ph} l S\n`;
+    for (const y of [my, my + ch + gap / 2, my + 2 * ch + 1.5 * gap, my + 3 * ch + 2 * gap])
+      stream += `0 ${y} m ${pw} ${y} l S\n`;
     objs[pid] = [enc(
       `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pw} ${ph}] /Resources << /XObject <<${xobj} >> >> /Contents ${cid} 0 R >>`
     )];

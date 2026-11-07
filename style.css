@@ -922,6 +922,7 @@ h1:after {
   }
 
   .printSheet {
+    position: relative;
     width: 210mm;
     height: 297mm;
     page-break-after: always;
@@ -935,13 +936,28 @@ h1:after {
     align-content: center
   }
 
+  .printSheet::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    background:
+      linear-gradient(#888, #888) 0 calc(50% - 134mm) / 100% .15mm no-repeat,
+      linear-gradient(#888, #888) 0 calc(50% - 45mm) / 100% .15mm no-repeat,
+      linear-gradient(#888, #888) 0 calc(50% + 45mm) / 100% .15mm no-repeat,
+      linear-gradient(#888, #888) 0 calc(50% + 134mm) / 100% .15mm no-repeat,
+      linear-gradient(90deg, #888, #888) calc(50% - 96.5mm) 0 / .15mm 100% no-repeat,
+      linear-gradient(90deg, #888, #888) calc(50% - 32.5mm) 0 / .15mm 100% no-repeat,
+      linear-gradient(90deg, #888, #888) calc(50% + 32.5mm) 0 / .15mm 100% no-repeat,
+      linear-gradient(90deg, #888, #888) calc(50% + 96.5mm) 0 / .15mm 100% no-repeat
+  }
+
   .printCard {
     width: 63mm;
     height: 88mm;
     overflow: hidden;
-    border-radius: 3mm;
-    outline: .15mm solid #888;
-    outline-offset: 0
+    border-radius: 3mm
   }
 
   .printCard img {
