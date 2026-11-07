@@ -892,6 +892,26 @@ h1:after {
   margin: 0
 }
 
+.backImageLabel {
+  display: block;
+  margin: 10px 0 7px;
+  color: #365768;
+  font-size: 13px;
+  font-weight: 650
+}
+
+.backImageRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap
+}
+
+.backImageRow input[type=file] {
+  min-width: 0;
+  flex: 1
+}
+
 @media print {
   body>* {
     display: none !important

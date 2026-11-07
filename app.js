@@ -1,7 +1,10 @@
 const $ = s => document.querySelector(s);
 let deck = [],
   localImages = [],
-  selectedCard = null;
+  selectedCard = null,
+  customBackImage = '';
+
+const defaultCardBack = 'https://drive.google.com/thumbnail?id=1LrVX0pUcye9n_0RtaDNVl2xPrQgn7CYf&sz=w2000';
 
 const exampleXml = `<order>
   <details><quantity>5</quantity><bracket>18</bracket><stock>(S30) Standard Smooth</stock><foil>false</foil></details>
@@ -82,6 +85,12 @@ function status(msg) {
   $('#status').textContent = msg
 }
 
+function effectiveBack(card) {
+  if (card?.backKind === 'unique') return card.back || '';
+  if (!$('#commonBacks').checked) return '';
+  return customBackImage || (card?.backKind === 'common' && card.back ? card.back : defaultCardBack)
+}
+
 function render() {
   const host = $('#cards');
   host.innerHTML = '';
@@ -120,10 +129,11 @@ function showDetail(card) {
     ]) {
     const img = $(`#detail${key}`);
     const empty = $(`#empty${key}`);
-    img.src = card[side] || '';
+    const imageSrc = side === 'back' ? effectiveBack(card) : card[side] || '';
+    img.src = imageSrc;
     img.alt = `${card.name} — ${side === 'front' ? 'recto' : 'verso'}`;
-    img.hidden = !card[side];
-    empty.hidden = !!card[side]
+    img.hidden = !imageSrc;
+    empty.hidden = !!imageSrc
   }
   $('#cardModal').hidden = false;
   $('#closeDetail').focus()
@@ -135,6 +145,39 @@ function closeDetail() {
 }
 
 $('#closeDetail').addEventListener('click', closeDetail);
+$('#commonBacks').addEventListener('change', () => {
+  if (selectedCard) showDetail(selectedCard)
+});
+$('#backImage').addEventListener('change', async event => {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) {
+    status('Choisis un fichier image pour le dos.');
+    event.target.value = '';
+    return
+  }
+  try {
+    customBackImage = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(Error('Impossible de lire cette image.'));
+      reader.readAsDataURL(file)
+    });
+    $('#commonBacks').checked = true;
+    $('#resetBackImage').disabled = false;
+    if (selectedCard) showDetail(selectedCard);
+    status('Image personnalisée appliquée aux dos communs seulement.')
+  } catch (err) {
+    status(err.message || 'Impossible de charger cette image.')
+  }
+});
+$('#resetBackImage').addEventListener('click', () => {
+  customBackImage = '';
+  $('#backImage').value = '';
+  $('#resetBackImage').disabled = true;
+  if (selectedCard) showDetail(selectedCard);
+  status('Dos de base rétabli.')
+});
 $('#deleteCard').addEventListener('click', () => {
   if (!selectedCard) return;
   const index = deck.indexOf(selectedCard);
@@ -377,10 +420,11 @@ async function printSheets() {
           c = deck[start + row * 3 + sourceCol],
           box = document.createElement('div');
         box.className = 'printCard';
-        const showBack = c && c.backKind === 'unique' || $('#commonBacks').checked;
-        if (c?.[side] && (side === 'front' || showBack)) {
+        const showBack = c && (c.backKind === 'unique' || $('#commonBacks').checked);
+        const imageUrl = side === 'back' ? effectiveBack(c) : c?.front;
+        if (imageUrl && (side === 'front' || showBack)) {
           const im = document.createElement('img');
-          im.src = c[side];
+          im.src = imageUrl;
           im.alt = c.name + ' ' + side;
           box.append(im)
         }
@@ -536,9 +580,9 @@ $('#print').onclick = async () => {
     for (let i = 0; i < deck.length; i++) {
       status(`Téléchargement des images… ${i+1}/${deck.length}`);
       for (const side of ['front', 'back']) {
-        if (side === 'back' && deck[i].backKind === 'common' && !$('#commonBacks').checked)
+        if (side === 'back' && deck[i].backKind !== 'unique' && !$('#commonBacks').checked)
           continue;
-        const source = deck[i][side],
+        const source = side === 'back' ? effectiveBack(deck[i]) : deck[i][side],
           key = getUrl(source);
         if (key && !images.has(key)) images.set(key, await loadJpeg(source))
       }
@@ -564,9 +608,9 @@ $('#print').onclick = async () => {
             col = cell % cols,
             sourceCol = side === 'back' ? cols - 1 - col : col,
             c = deck[start + row * cols + sourceCol];
-          if (!c || (side === 'back' && c.backKind === 'common' && !$('#commonBacks').checked))
+          if (!c || (side === 'back' && c.backKind !== 'unique' && !$('#commonBacks').checked))
             continue;
-          const key = getUrl(c[side]);
+          const key = getUrl(side === 'back' ? effectiveBack(c) : c[side]);
           if (!key) continue;
           entries.push({
             cell,

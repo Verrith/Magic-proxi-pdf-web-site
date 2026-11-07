@@ -6,7 +6,7 @@
   <title>
    impression de proxies ou création de pdf
   </title>
-  <link href="style.css" rel="stylesheet"/>
+  <link href="style.css?v=default-backs-20261107" rel="stylesheet"/>
  </head>
  <body>
   <main class="wrap">
@@ -94,8 +94,13 @@
       Imprimer les dos communs
      </label>
      <p class="hint">
-      Si tu décoches cette option, les dos particuliers des cartes recto verso restent imprimés.
+      Cette option ajoute le dos de base aux cartes qui n’ont pas leur propre verso. Les versos des cartes recto verso restent les leurs.
      </p>
+     <label class="backImageLabel" for="backImage">Image personnalisée pour les dos communs (optionnel)</label>
+     <div class="backImageRow">
+      <input accept="image/*" id="backImage" type="file" aria-label="Choisir une image personnalisée pour les dos"/>
+      <button class="btn secondary" id="resetBackImage" type="button" disabled>Dos de base</button>
+     </div>
      <div class="actions">
       <button class="btn" disabled="" id="print">
        Télécharger le PDF
@@ -131,7 +136,7 @@
     </div>
    </section>
   </div>
-  <script defer="" src="app.js?v=8943d91">
+  <script defer="" src="app.js?v=default-backs-20261107">
   </script>
  </body>
 </html>
