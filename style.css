@@ -939,7 +939,9 @@ h1:after {
     width: 63mm;
     height: 88mm;
     overflow: hidden;
-    border-radius: 3mm
+    border-radius: 3mm;
+    outline: .15mm solid #888;
+    outline-offset: 0
   }
 
   .printCard img {

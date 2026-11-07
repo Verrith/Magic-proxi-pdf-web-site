@@ -515,8 +515,9 @@ function pdfBytes(pages) {
     ph = 297 / 25.4 * 72,
     cw = 63 / 25.4 * 72,
     ch = 88 / 25.4 * 72,
-    mx = (pw - 3 * cw) / 2,
-    my = (ph - 3 * ch) / 2,
+    gap = 2 / 25.4 * 72,
+    mx = (pw - (3 * cw + 2 * gap)) / 2,
+    my = (ph - (3 * ch + 2 * gap)) / 2,
     r = 3 / 25.4 * 72,
     k = .55228475 * r;
   let nextId = 3 + pages.length * 2;
@@ -539,6 +540,14 @@ function pdfBytes(pages) {
         id: iid,
         image: ent.image
       })
+    }
+    // Draw cut guides around all nine slots, including empty slots on sparse back sheets.
+    for (let cell = 0; cell < 9; cell++) {
+      const row = Math.floor(cell / 3),
+        col = cell % 3,
+        x = mx + col * (cw + gap),
+        y = ph - my - ch - row * (ch + gap);
+      stream += `0.55 G 0.4 w ${x} ${y} ${cw} ${ch} re S\n`
     }
     objs[pid] = [enc(
       `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pw} ${ph}] /Resources << /XObject <<${xobj} >> >> /Contents ${cid} 0 R >>`
