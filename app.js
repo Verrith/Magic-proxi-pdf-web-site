@@ -405,6 +405,60 @@ $('#loadMoxfield').addEventListener('click', async () => {
   }
 });
 
+
+function pipglyphId(value) {
+  try {
+    const url = new URL(value.trim());
+    if (!['pipglyph.com', 'www.pipglyph.com'].includes(url.hostname.toLowerCase())) return '';
+    return url.pathname.match(/^\/deck\/([\w-]+)\/?$/i)?.[1] || '';
+  } catch { return ''; }
+}
+
+function pipglyphCards(markup) {
+  const doc = new DOMParser().parseFromString(markup, 'text/html');
+  const cards = [];
+  for (const entry of doc.querySelectorAll('[data-deck-entry]')) {
+    const image = entry.querySelector('img[src]');
+    const label = entry.getAttribute('aria-label') || '';
+    const quantityMatch = label.match(/,\s*(\d+)\s+copies?\b/i);
+    const quantity = Math.max(1, Number(quantityMatch?.[1]) || 1);
+    const nameFromLabel = quantityMatch ? label.slice(0, quantityMatch.index).trim() : label.split(',')[0].trim();
+    const name = image?.alt?.trim() || nameFromLabel || 'Carte PipGlyph';
+    if (!image) throw Error(`Image introuvable pour « ${name} » sur PipGlyph.`);
+    const front = new URL(image.getAttribute('src'), 'https://www.pipglyph.com').href;
+    for (let i = 0; i < quantity; i++) cards.push({
+      slot: cards.length, name, front, frontId: '', back: '', backId: '', backKind: 'missing'
+    });
+  }
+  if (!cards.length) throw Error('Aucune carte image trouvée. Vérifie que le deck PipGlyph est public et contient des cartes.');
+  return cards;
+}
+
+$('#loadPipglyph').addEventListener('click', async () => {
+  const slug = pipglyphId($('#pipglyphUrl').value);
+  if (!slug) { status('Colle un lien valide vers un deck PipGlyph.'); return; }
+  const button = $('#loadPipglyph');
+  button.disabled = true;
+  try {
+    status('Récupération des cartes PipGlyph…');
+    const target = `https://www.pipglyph.com/deck/${encodeURIComponent(slug)}`;
+    const response = await fetch(`https://cors.tools/proxy?url=${encodeURIComponent(target)}`, {
+      headers: { Accept: 'text/html' }, signal: AbortSignal.timeout(30000)
+    });
+    if (!response.ok) throw Error(`PipGlyph a répondu HTTP ${response.status}. Vérifie que le deck est public.`);
+    const imported = pipglyphCards(await response.text());
+    deck = imported;
+    render();
+    status(`${deck.length} carte(s) importée(s) depuis PipGlyph avec leurs images.`);
+  } catch (err) {
+    status(err?.name === 'TimeoutError'
+      ? 'PipGlyph met trop de temps à répondre. Réessaie dans un instant.'
+      : err instanceof TypeError
+        ? 'Le service de lecture PipGlyph est momentanément inaccessible. Réessaie plus tard.'
+        : err.message || 'Import PipGlyph impossible.');
+  } finally { button.disabled = false; }
+});
+
 async function printSheets() {
   if (!deck.length) return;
   const root = $('#printRoot');
