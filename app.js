@@ -1,5 +1,6 @@
 const $ = s => document.querySelector(s);
 let deck = [],
+  deckName = 'Deck',
   localImages = [],
   selectedCard = null,
   customBackImage = '';
@@ -199,6 +200,7 @@ $('#xmlFile').addEventListener('change', async e => {
     const f = e.target.files[0];
     if (!f) return;
     deck = parse(await f.text());
+    deckName = f.name.replace(/\.[^.]+$/, '') || 'Deck';
     render();
     status(
       `${deck.length} carte(s) chargée(s). Les images apparaissent au fur et à mesure du chargement.`
@@ -289,6 +291,7 @@ $('#loadArchidekt').addEventListener('click', async () => {
       return payload
     };
     const data = await requestJson('');
+    deckName = data.name || data.deckName || `Archidekt-${id}`;
     const tokenResult = await requestJson('tokens/').catch(() => []);
     const cards = [];
     const categories = new Map((data.categories || []).map(category => [String(category.name).toLowerCase(), category]));
@@ -393,6 +396,7 @@ $('#loadMoxfield').addEventListener('click', async () => {
       throw Error(upstreamError || `Impossible de lire ce deck (HTTP ${response.status}). Vérifie qu’il est public.`)
     }
     data = data?.deck || data;
+    deckName = data.name || data.deckName || `Moxfield-${id}`;
     const boards = data.boards || {};
     const entries = ['commanders', 'mainboard', 'companions', 'sideboard', 'maybeboard'].flatMap(board =>
       Object.entries(boards[board]?.cards || {}).map(([entryId, entry]) => ({ entryId, ...entry })));
@@ -442,6 +446,7 @@ function pipglyphId(value) {
 
 function pipglyphCards(markup) {
   const doc = new DOMParser().parseFromString(markup, 'text/html');
+  const pageDeckName = doc.querySelector('h1')?.textContent.trim() || doc.title.replace(/\s*[·|—-]\s*PipGlyph.*$/i, '').trim();
   const cards = [];
   for (const entry of doc.querySelectorAll('[data-deck-entry]')) {
     const image = entry.querySelector('img[src]');
@@ -457,6 +462,7 @@ function pipglyphCards(markup) {
     });
   }
   if (!cards.length) throw Error('Aucune carte image trouvée. Vérifie que le deck PipGlyph est public et contient des cartes.');
+  deckName = pageDeckName || 'PipGlyph';
   return cards;
 }
 
@@ -488,6 +494,13 @@ $('#loadPipglyph').addEventListener('click', async () => {
 function pdfFileTimestamp(date = new Date()) {
   const pad = value => String(value).padStart(2, '0');
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}_${pad(date.getHours())}-${pad(date.getMinutes())}`;
+}
+
+function pdfFileName() {
+  const safeName = String(deckName || 'Deck')
+    .replace(/[<>:"/\\|?*\u0000-\u001f]/g, '-')
+    .replace(/\s+/g, ' ').trim().replace(/[. ]+$/, '').slice(0, 80);
+  return `${pdfFileTimestamp()}_${safeName || 'Deck'}.pdf`;
 }
 
 async function printSheets() {
@@ -524,7 +537,7 @@ async function printSheets() {
   await Promise.all([...root.querySelectorAll('img')].map(img => img.complete ? Promise.resolve() : new Promise(resolve => { img.onload = resolve; img.onerror = resolve; })));
   status('Dans la fenêtre d’impression, choisis « Enregistrer au format PDF ».');
   const previousTitle = document.title;
-  document.title = pdfFileTimestamp();
+  document.title = pdfFileName().replace(/\.pdf$/i, '');
   try { window.print(); } finally { document.title = previousTitle; }
 }
 $('#printFallback').onclick = printSheets;
@@ -532,6 +545,7 @@ $('#printFallback').onclick = printSheets;
 $('#demo').onclick = () => {
   try {
     deck = parse(exampleXml);
+    deckName = 'Exemple';
     deck.forEach(card => {
       card.name = card.name.replace(/ \([^)]*\)\.jpg$/i, '')
     });
@@ -747,7 +761,7 @@ $('#print').onclick = async () => {
       url = URL.createObjectURL(blob),
       a = document.createElement('a');
     a.href = url;
-    a.download = `${pdfFileTimestamp()}.pdf`;
+    a.download = pdfFileName();
     document.body.append(a);
     a.click();
     a.remove();
