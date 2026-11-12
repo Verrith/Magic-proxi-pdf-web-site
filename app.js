@@ -77,7 +77,8 @@ function parse(xml) {
       frontId: fs.get(slot)?.imageId || '',
       back: uniqueBack || cardback,
       backId: bs.get(slot)?.imageId || backId,
-      backKind: uniqueBack ? 'unique' : cardback ? 'common' : 'missing'
+      backKind: uniqueBack ? 'unique' : cardback ? 'common' : 'missing',
+      sourceType: 'xml'
     }
   });
 }
@@ -521,7 +522,7 @@ async function printSheets() {
         imageUrl = !card ? '' : (side === 'back' || isTrailingBack) ? effectiveBack(card) : card.front,
         box = document.createElement('div');
       box.className = 'printCard';
-      if (imageUrl) { const image = document.createElement('img'); image.src = imageUrl; image.alt = card.name + ((side === 'back' || isTrailingBack) ? ' verso' : ' recto'); box.append(image); hasImage = true; }
+      if (imageUrl) { const image = document.createElement('img'); if (card.sourceType === 'xml') { image.crossOrigin = 'anonymous'; image.dataset.trimDarkMargins = 'true'; image.src = corsImageUrl(imageUrl); } else image.src = imageUrl; image.alt = card.name + ((side === 'back' || isTrailingBack) ? ' verso' : ' recto'); box.append(image); hasImage = true; }
       sheet.append(box);
     }
     if (hasImage) root.append(sheet);
@@ -535,6 +536,9 @@ async function printSheets() {
   if (!commonBacks) for (let start = placedBacks; start < uniqueBacks.length; start += 9) appendSheet(uniqueBacks, 'back', start);
   status('Préparation des feuilles A4…');
   await Promise.all([...root.querySelectorAll('img')].map(img => img.complete ? Promise.resolve() : new Promise(resolve => { img.onload = resolve; img.onerror = resolve; })));
+  await Promise.all([...root.querySelectorAll('img[data-trim-dark-margins]')].map(async image => {
+    try { image.src = trimDarkMarginDataUrl(image); if (image.decode) await image.decode(); } catch { /* keep the original if image cropping is blocked */ }
+  }));
   status('Dans la fenêtre d’impression, choisis « Enregistrer au format PDF ».');
   const previousTitle = document.title;
   document.title = pdfFileName().replace(/\.pdf$/i, '');
@@ -561,7 +565,56 @@ function corsImageUrl(url) {
     url) + '&w=2000&output=jpg'
 }
 
-function loadJpeg(url) {
+function darkMarginBounds(image) {
+  const sampleWidth = 180, sampleHeight = 252, sample = document.createElement('canvas');
+  sample.width = sampleWidth; sample.height = sampleHeight;
+  const sampleContext = sample.getContext('2d', { willReadFrequently: true });
+  sampleContext.drawImage(image, 0, 0, sampleWidth, sampleHeight);
+  const pixels = sampleContext.getImageData(0, 0, sampleWidth, sampleHeight).data;
+  const visibleRow = y => {
+    let visible = 0;
+    for (let x = 0; x < sampleWidth; x++) {
+      const i = (y * sampleWidth + x) * 4;
+      if (Math.max(pixels[i], pixels[i + 1], pixels[i + 2]) > 54) visible++;
+    }
+    return visible / sampleWidth > .035;
+  };
+  const visibleColumn = x => {
+    let visible = 0;
+    for (let y = 0; y < sampleHeight; y++) {
+      const i = (y * sampleWidth + x) * 4;
+      if (Math.max(pixels[i], pixels[i + 1], pixels[i + 2]) > 54) visible++;
+    }
+    return visible / sampleHeight > .035;
+  };
+  let left = 0, right = sampleWidth - 1, top = 0, bottom = sampleHeight - 1;
+  while (left < sampleWidth * .2 && !visibleColumn(left)) left++;
+  while (right > sampleWidth * .8 && !visibleColumn(right)) right--;
+  while (top < sampleHeight * .2 && !visibleRow(top)) top++;
+  while (bottom > sampleHeight * .8 && !visibleRow(bottom)) bottom--;
+  const padding = 2;
+  left = Math.max(0, left - padding); right = Math.min(sampleWidth - 1, right + padding);
+  top = Math.max(0, top - padding); bottom = Math.min(sampleHeight - 1, bottom + padding);
+  const sx = Math.floor(left / sampleWidth * image.naturalWidth),
+    sy = Math.floor(top / sampleHeight * image.naturalHeight),
+    ex = Math.ceil((right + 1) / sampleWidth * image.naturalWidth),
+    ey = Math.ceil((bottom + 1) / sampleHeight * image.naturalHeight),
+    totalMargin = sx + sy + image.naturalWidth - ex + image.naturalHeight - ey;
+  if (totalMargin / (image.naturalWidth + image.naturalHeight) < .025)
+    return { x: 0, y: 0, width: image.naturalWidth, height: image.naturalHeight };
+  return { x: sx, y: sy, width: ex - sx, height: ey - sy };
+}
+
+function trimDarkMarginDataUrl(image) {
+  const crop = darkMarginBounds(image), canvas = document.createElement('canvas');
+  canvas.width = 1000; canvas.height = 1397;
+  const context = canvas.getContext('2d');
+  context.fillStyle = '#fff'; context.fillRect(0, 0, canvas.width, canvas.height);
+  context.drawImage(image, crop.x, crop.y, crop.width, crop.height, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL('image/jpeg', .94);
+}
+
+function loadJpeg(url, trimDarkMargins = false) {
   return new Promise((resolve, reject) => {
     const im = new Image();
     if (url.startsWith('http')) im.crossOrigin = 'anonymous';
@@ -573,7 +626,8 @@ function loadJpeg(url) {
         const ctx = canvas.getContext('2d');
         ctx.fillStyle = '#fff';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(im, 0, 0, canvas.width, canvas.height);
+        const crop = trimDarkMargins ? darkMarginBounds(im) : { x: 0, y: 0, width: im.naturalWidth, height: im.naturalHeight };
+        ctx.drawImage(im, crop.x, crop.y, crop.width, crop.height, 0, 0, canvas.width, canvas.height);
         const data = atob(canvas.toDataURL('image/jpeg', .94).split(',')[1]),
           bytes = new Uint8Array(data.length);
         for (let i = 0; i < data.length; i++) bytes[i] = data.charCodeAt(i);
@@ -690,7 +744,7 @@ $('#print').onclick = async () => {
           continue;
         const source = side === 'back' ? effectiveBack(deck[i]) : deck[i][side],
           key = getUrl(source);
-        if (key && !images.has(key)) images.set(key, await loadJpeg(source))
+        if (key && !images.has(key)) images.set(key, await loadJpeg(source, deck[i].sourceType === 'xml'))
       }
     }
     const pages = [],
