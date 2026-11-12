@@ -27,39 +27,49 @@
    <div class="layout">
     <section class="panel">
      <h2>01 — Importer ton deck</h2>
-     <div class="drop">
-      <strong>Importer depuis Moxfield</strong>
-      <p class="hint">Les impressions sélectionnées dans le deck seront utilisées. Le deck public est lu via le relais cors.tools, comme sur le site de jeu.</p>
-      <div class="row">
-       <input id="moxfieldUrl" type="url" placeholder="https://moxfield.com/decks/…" aria-label="Lien du deck Moxfield">
-       <button class="btn secondary" id="loadMoxfield" type="button">Importer</button>
-      </div>
+     <p class="hint importIntro">Choisis où se trouve ta liste de cartes.</p>
+     <div class="importChooser" role="tablist" aria-label="Source du deck">
+      <button class="importChoice active" id="importTabMoxfield" type="button" role="tab" aria-selected="true" aria-controls="importPanelMoxfield" data-import-mode="moxfield">
+       <span class="importBadge">M</span><span class="importChoiceText"><strong>Moxfield</strong><small>Lien de deck</small></span>
+      </button>
+      <button class="importChoice" id="importTabArchidekt" type="button" role="tab" aria-selected="false" aria-controls="importPanelArchidekt" data-import-mode="archidekt" tabindex="-1">
+       <span class="importBadge">A</span><span class="importChoiceText"><strong>Archidekt</strong><small>Lien de deck</small></span>
+      </button>
+      <button class="importChoice" id="importTabPipglyph" type="button" role="tab" aria-selected="false" aria-controls="importPanelPipglyph" data-import-mode="pipglyph" tabindex="-1">
+       <span class="importBadge">P</span><span class="importChoiceText"><strong>PipGlyph</strong><small>Images incluses</small></span>
+      </button>
+      <button class="importChoice" id="importTabXml" type="button" role="tab" aria-selected="false" aria-controls="importPanelXml" data-import-mode="xml" tabindex="-1">
+       <span class="importBadge importBadgeXml">XML</span><span class="importChoiceText"><strong>Fichier XML</strong><small>MPCFill / MPC Autofill</small></span>
+      </button>
      </div>
-     <div class="drop">
-      <strong>Importer depuis Archidekt</strong>
-      <p class="hint">Les impressions choisies sur Archidekt seront utilisées.</p>
-      <div class="row">
-       <input id="archidektUrl" type="url" placeholder="https://archidekt.com/decks/123456" aria-label="Lien du deck Archidekt">
-       <button class="btn secondary" id="loadArchidekt" type="button">Importer</button>
+     <div class="importPanels">
+      <div class="importPanel" id="importPanelMoxfield" role="tabpanel" aria-labelledby="importTabMoxfield">
+       <div class="drop"><strong>Importer depuis Moxfield</strong>
+        <p class="hint">Les impressions choisies dans le deck seront utilisées. Le deck doit être public.</p>
+        <div class="row"><input id="moxfieldUrl" type="url" placeholder="https://moxfield.com/decks/…" aria-label="Lien du deck Moxfield"><button class="btn secondary" id="loadMoxfield" type="button">Importer</button></div>
+       </div>
       </div>
-     </div>
-     <div class="drop">
-      <strong>Importer depuis PipGlyph</strong>
-      <p class="hint">Les images des cartes du deck public seront utilisées pour l’aperçu et le PDF.</p>
-      <div class="row">
-       <input id="pipglyphUrl" type="url" placeholder="https://www.pipglyph.com/deck/…" aria-label="Lien du deck PipGlyph">
-       <button class="btn secondary" id="loadPipglyph" type="button">Importer</button>
+      <div class="importPanel" id="importPanelArchidekt" role="tabpanel" aria-labelledby="importTabArchidekt" hidden>
+       <div class="drop"><strong>Importer depuis Archidekt</strong>
+        <p class="hint">Les impressions choisies sur Archidekt seront utilisées.</p>
+        <div class="row"><input id="archidektUrl" type="url" placeholder="https://archidekt.com/decks/123456" aria-label="Lien du deck Archidekt"><button class="btn secondary" id="loadArchidekt" type="button">Importer</button></div>
+       </div>
       </div>
-     </div>
-     <div class="drop">
-      <strong>Importer un XML MPCFill</strong>
-      <p class="hint">
-       Fichier .xml généré depuis MPCFill / MPC Autofill
-      </p>
-      <input accept=".xml,text/xml,application/xml" id="xmlFile" type="file"/>
+      <div class="importPanel" id="importPanelPipglyph" role="tabpanel" aria-labelledby="importTabPipglyph" hidden>
+       <div class="drop"><strong>Importer depuis PipGlyph</strong>
+        <p class="hint">Les images des cartes du deck public seront utilisées pour l’aperçu et le PDF.</p>
+        <div class="row"><input id="pipglyphUrl" type="url" placeholder="https://www.pipglyph.com/deck/…" aria-label="Lien du deck PipGlyph"><button class="btn secondary" id="loadPipglyph" type="button">Importer</button></div>
+       </div>
+      </div>
+      <div class="importPanel" id="importPanelXml" role="tabpanel" aria-labelledby="importTabXml" hidden>
+       <div class="drop"><strong>Importer un XML MPCFill</strong>
+        <p class="hint">Choisis le fichier .xml généré depuis MPCFill ou MPC Autofill.</p>
+        <input accept=".xml,text/xml,application/xml" id="xmlFile" type="file" aria-label="Fichier XML MPCFill">
+       </div>
+      </div>
      </div>
      <div class="status" id="status">
-      En attente d’un fichier XML.
+      En attente d’un deck ou d’un fichier XML.
      </div>
      <div class="preview">
       <h2>
@@ -144,7 +154,7 @@
     </div>
    </section>
   </div>
-  <script defer="" src="app.js?v=pipglyph-import-20261112">
+  <script defer="" src="app.js?v=import-tabs-20261112">
   </script>
  </body>
 </html>

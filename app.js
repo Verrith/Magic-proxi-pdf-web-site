@@ -345,6 +345,32 @@ $('#loadArchidekt').addEventListener('click', async () => {
   }
 });
 
+const importTabs = [...document.querySelectorAll('[data-import-mode]')];
+function selectImportMode(mode, moveFocus = false) {
+  for (const tab of importTabs) {
+    const selected = tab.dataset.importMode === mode;
+    tab.classList.toggle('active', selected);
+    tab.setAttribute('aria-selected', String(selected));
+    tab.tabIndex = selected ? 0 : -1;
+    const panel = document.getElementById(tab.getAttribute('aria-controls'));
+    if (panel) panel.hidden = !selected;
+    if (selected && moveFocus) tab.focus();
+  }
+}
+importTabs.forEach((tab, index) => {
+  tab.addEventListener('click', () => selectImportMode(tab.dataset.importMode));
+  tab.addEventListener('keydown', event => {
+    let next = index;
+    if (event.key === 'ArrowRight') next = (index + 1) % importTabs.length;
+    else if (event.key === 'ArrowLeft') next = (index - 1 + importTabs.length) % importTabs.length;
+    else if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = importTabs.length - 1;
+    else return;
+    event.preventDefault();
+    selectImportMode(importTabs[next].dataset.importMode, true);
+  });
+});
+
 $('#loadMoxfield').addEventListener('click', async () => {
   const id = moxfieldId($('#moxfieldUrl').value);
   if (!id) {
