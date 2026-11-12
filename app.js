@@ -485,6 +485,11 @@ $('#loadPipglyph').addEventListener('click', async () => {
   } finally { button.disabled = false; }
 });
 
+function pdfFileTimestamp(date = new Date()) {
+  const pad = value => String(value).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}_${pad(date.getHours())}-${pad(date.getMinutes())}`;
+}
+
 async function printSheets() {
   if (!deck.length) return;
   const root = $('#printRoot');
@@ -517,7 +522,10 @@ async function printSheets() {
   if (!commonBacks) for (let start = placedBacks; start < uniqueBacks.length; start += 9) appendSheet(uniqueBacks, 'back', start);
   status('Préparation des feuilles A4…');
   await Promise.all([...root.querySelectorAll('img')].map(img => img.complete ? Promise.resolve() : new Promise(resolve => { img.onload = resolve; img.onerror = resolve; })));
-  status('Dans la fenêtre d’impression, choisis « Enregistrer au format PDF ».'); window.print();
+  status('Dans la fenêtre d’impression, choisis « Enregistrer au format PDF ».');
+  const previousTitle = document.title;
+  document.title = pdfFileTimestamp();
+  try { window.print(); } finally { document.title = previousTitle; }
 }
 $('#printFallback').onclick = printSheets;
 
@@ -739,7 +747,7 @@ $('#print').onclick = async () => {
       url = URL.createObjectURL(blob),
       a = document.createElement('a');
     a.href = url;
-    a.download = 'cartes-recto-verso.pdf';
+    a.download = `${pdfFileTimestamp()}.pdf`;
     document.body.append(a);
     a.click();
     a.remove();
