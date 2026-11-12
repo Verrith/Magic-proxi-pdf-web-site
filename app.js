@@ -592,7 +592,7 @@ function darkMarginBounds(image) {
   while (right > sampleWidth * .8 && !visibleColumn(right)) right--;
   while (top < sampleHeight * .2 && !visibleRow(top)) top++;
   while (bottom > sampleHeight * .8 && !visibleRow(bottom)) bottom--;
-  const padding = 2;
+  const padding = 7;
   left = Math.max(0, left - padding); right = Math.min(sampleWidth - 1, right + padding);
   top = Math.max(0, top - padding); bottom = Math.min(sampleHeight - 1, bottom + padding);
   const sx = Math.floor(left / sampleWidth * image.naturalWidth),
