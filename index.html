@@ -63,7 +63,9 @@
       </div>
       <div class="importPanel" id="importPanelXml" role="tabpanel" aria-labelledby="importTabXml" hidden>
        <div class="drop"><strong>Importer un XML MPCFill</strong>
-        <p class="hint">Choisis le fichier .xml généré depuis MPCFill ou MPC Autofill.</p>
+        <p class="hint">Crée ton fichier XML dans MPCFill, puis importe-le ici.</p>
+        <a class="btn secondary mpcfillLink" href="https://mpcfill.com/editor" target="_blank" rel="noopener noreferrer">Ouvrir MPCFill ↗</a>
+        <label class="mpcfillFileLabel" for="xmlFile">Puis choisis ton fichier XML</label>
         <input accept=".xml,text/xml,application/xml" id="xmlFile" type="file" aria-label="Fichier XML MPCFill">
        </div>
       </div>
@@ -154,7 +156,7 @@
     </div>
    </section>
   </div>
-  <script defer="" src="app.js?v=xml-black-trim-20261112">
+  <script defer="" src="app.js?v=mpcfill-link-filename-20261112">
   </script>
  </body>
 </html>

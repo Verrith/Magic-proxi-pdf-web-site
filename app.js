@@ -500,8 +500,8 @@ function pdfFileTimestamp(date = new Date()) {
 function pdfFileName() {
   const safeName = String(deckName || 'Deck')
     .replace(/[<>:"/\\|?*\u0000-\u001f]/g, '-')
-    .replace(/\s+/g, ' ').trim().replace(/[. ]+$/, '').slice(0, 80);
-  return `${pdfFileTimestamp()}_${safeName || 'Deck'}.pdf`;
+    .replace(/\s+/g, '_').trim().replace(/[._]+$/, '').slice(0, 80);
+  return `${pdfFileTimestamp()} “${safeName || 'Deck'}”.pdf`;
 }
 
 async function printSheets() {
